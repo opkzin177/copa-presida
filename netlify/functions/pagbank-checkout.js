@@ -59,7 +59,6 @@ exports.handler = async (event) => {
 
   const token = process.env.PAGBANK_TOKEN;
   if (!token) {
-    // Fallback: devolve o link estático já usado no site
     const isConv = isConvidado(categoria);
     const staticUrl = isConv
       ? "https://pag.ae/82av5xD4o"
@@ -79,6 +78,15 @@ exports.handler = async (event) => {
       : "https://sandbox.api.pagseguro.com";
 
   const amount = valorCentavos(categoria, metodo);
+
+  const siteBase = (
+    process.env.URL ||
+    process.env.DEPLOY_PRIME_URL ||
+    process.env.SITE_URL ||
+    "https://inscricaocopapresida.com"
+  ).replace(/\/$/, "");
+  const webhookUrl = `${siteBase}/.netlify/functions/pagbank-webhook`;
+
   const payload = {
     reference_id: String(referencia).slice(0, 64),
     customer: {
@@ -110,7 +118,9 @@ exports.handler = async (event) => {
     ],
     redirect_url:
       redirect_url ||
-      "https://copa-presida.netlify.app/?pagbank=retorno",
+      `${siteBase}/?pagbank=retorno`,
+    payment_notification_urls: [webhookUrl],
+    notification_urls: [webhookUrl],
     soft_descriptor: "COPA PRESIDA"
   };
 
@@ -152,7 +162,8 @@ exports.handler = async (event) => {
       paymentUrl,
       checkoutId: data.id,
       valorCentavos: amount,
-      mode: "dynamic"
+      mode: "dynamic",
+      webhookUrl
     });
   } catch (err) {
     console.error(err);

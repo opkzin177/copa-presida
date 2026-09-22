@@ -9,7 +9,7 @@ Site de inscrições com:
   - Categorias padrão → PIX **R$ 350** · Cartão **R$ 385**
   - Convidados → PIX **R$ 600** · Cartão **R$ 660**
 - Área restrita (admin) com KPIs, discos e lista por categoria
-- Backend em **Netlify Functions** para checkout dinâmico e login
+- Backend em **Netlify Functions** para checkout dinâmico, login e **webhook PagBank**
 
 ## Deploy no Netlify (recomendado)
 
@@ -20,7 +20,8 @@ Site de inscrições com:
 3. Em **Site settings → Environment variables** configure:
    - `ADMIN_USER` / `ADMIN_PASS` (login do painel)
    - `PAGBANK_TOKEN` + `PAGBANK_ENV` (opcional — se vazio, usa os links pag.ae já existentes)
-4. Deploy. URL de exemplo: `https://seu-site.netlify.app`
+   - `SITE_URL` = URL pública do site (ex.: `https://inscricaocopapresida.com`)
+4. Deploy.
 
 ### Login admin
 
@@ -34,25 +35,46 @@ Site de inscrições com:
 | **PIX** | QR + payload estático Santander (Welber Francisco Rodrigue). Confirmação com titular + CPF. |
 | **Cartão** | Chama `/.netlify/functions/pagbank-checkout`. Com token PagBank → checkout dinâmico. Sem token → link estático `pag.ae`. |
 
+### Webhook PagBank
+
+Endpoint: `/.netlify/functions/pagbank-webhook` (também `/api/pagbank-webhook`)
+
+No checkout dinâmico já são enviados:
+- `payment_notification_urls` → pagamento (`PAID`, `DECLINED`, `WAITING`, …)
+- `notification_urls` → checkout (`EXPIRED`, …)
+
+Quando chega `PAID`, a inscrição no Firebase vira **paga** e o ingresso é gerado.
+
+Env opcional:
+- `PAGBANK_WEBHOOK_SECRET` — exige `?secret=` ou header `x-webhook-secret`
+- `FIREBASE_DB_URL` — override do RTDB
+- `SITE_URL` / `URL` — base da URL do webhook no create checkout
+
+Teste manual:
+```bash
+curl -X POST https://SEU-SITE.netlify.app/.netlify/functions/pagbank-webhook \
+  -H 'Content-Type: application/json' \
+  -d '{"reference_id":"INS-TESTE","charges":[{"id":"CHAR_1","status":"PAID","payment_method":{"type":"CREDIT_CARD"},"amount":{"value":38500}}]}'
+```
+
 ## Desenvolvimento local
 
 ```bash
-# com Netlify CLI
 npm i -g netlify-cli
 netlify dev
 ```
-
-Abre em `http://localhost:8888`.
 
 ## Estrutura
 
 ```
 copa-presida/
 ├── public/
-│   └── index.html          # site completo
+│   ├── index.html
+│   └── app.js
 ├── netlify/
 │   └── functions/
 │       ├── pagbank-checkout.js
+│       ├── pagbank-webhook.js
 │       └── admin-login.js
 ├── netlify.toml
 ├── .env.example
@@ -61,11 +83,7 @@ copa-presida/
 
 ## Firebase
 
-Os dados de inscrição ficam em:
-
 `https://copa-presida-default-rtdb.firebaseio.com/presida_v2.json`
-
-(leitura/escrita pública controlada pelo front — em produção considere regras de segurança e Auth).
 
 ## Organização
 
