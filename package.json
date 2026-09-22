@@ -1,0 +1,13 @@
+{
+  "name": "copa-presida",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Copa Presida de Futevôlei — site de inscrições (Netlify + PIX + PagBank)",
+  "scripts": {
+    "dev": "netlify dev",
+    "deploy": "netlify deploy --prod"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
