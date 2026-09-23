@@ -5,8 +5,11 @@
  *   INFINITEPAY_HANDLE = sua InfiniteTag (sem o $)
  *   SITE_URL           = https://inscricaocopapresida.com
  *
+ * Após o pagamento, o cliente volta para:
+ *   https://inscricaocopapresida.com/?infinitepay=retorno&order=INS-XXXX
+ * onde o site abre a tela de ingresso.
+ *
  * API: POST https://api.checkout.infinitepay.io/links
- * Docs: https://www.infinitepay.io/checkout
  */
 
 const PRECOS = {
@@ -77,10 +80,13 @@ exports.handler = async (event) => {
   const webhookUrl = `${siteBase}/.netlify/functions/infinitepay-webhook`;
   const orderNsu = String(referencia).slice(0, 64);
 
+  // Volta para a página de pagamento do site → tela de ingresso
+  const defaultRedirect =
+    `${siteBase}/?infinitepay=retorno&order=${encodeURIComponent(orderNsu)}&metodo=${encodeURIComponent(metodo || "cartao")}#inscricao`;
+
   const payload = {
     handle,
-    redirect_url:
-      redirect_url || `${siteBase}/?infinitepay=retorno&order=${encodeURIComponent(orderNsu)}`,
+    redirect_url: redirect_url || defaultRedirect,
     webhook_url: webhookUrl,
     order_nsu: orderNsu,
     customer: {
@@ -99,7 +105,6 @@ exports.handler = async (event) => {
     ]
   };
 
-  // Remove undefined do customer
   if (!payload.customer.phone_number) delete payload.customer.phone_number;
 
   try {
@@ -138,7 +143,8 @@ exports.handler = async (event) => {
       orderNsu,
       valorCentavos: amount,
       mode: "infinitepay",
-      webhookUrl
+      webhookUrl,
+      redirectUrl: payload.redirect_url
     });
   } catch (err) {
     console.error(err);
