@@ -14,7 +14,7 @@
 
 const PRECOS = {
   padrao: { pix: 350, credito: 385 },
-  convidado: { pix: 600, credito: 660 }
+  convidado: { pix: 600, credito: 600 }
 };
 
 function isConvidado(cat) {
@@ -80,7 +80,6 @@ exports.handler = async (event) => {
   const webhookUrl = `${siteBase}/.netlify/functions/infinitepay-webhook`;
   const orderNsu = String(referencia).slice(0, 64);
 
-  // Volta para a página de pagamento do site → tela de ingresso
   const defaultRedirect =
     `${siteBase}/?infinitepay=retorno&order=${encodeURIComponent(orderNsu)}&metodo=${encodeURIComponent(metodo || "cartao")}#inscricao`;
 
