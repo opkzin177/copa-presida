@@ -1,6 +1,8 @@
 [build]
   publish = "public"
   functions = "netlify/functions"
+  # Injeta o script InfinitePay no index antes de publicar
+  command = "grep -q infinitepay.js public/index.html || sed -i 's|</body>|<script src=\"/infinitepay.js\"></script></body>|' public/index.html"
 
 [functions]
   node_bundler = "esbuild"
