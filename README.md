@@ -1,68 +1,114 @@
 # Copa Presida de Futevôlei — 5ª Etapa
 
-Site de inscrições com:
+Site de inscrições: **https://inscricaocopapresida.com**
 
 - Programação por dia/categoria
 - Formulário de dupla
-- **PIX** (QR + Copia e Cola) e **Cartão PagBank**
+- **InfinitePay** (Pix taxa zero + Cartão até 12x) — **recomendado**
+- PagBank (legado, ainda disponível)
 - Valores fixos:
   - Categorias padrão → PIX **R$ 350** · Cartão **R$ 385**
   - Convidados → PIX **R$ 600** · Cartão **R$ 660**
-- Área restrita (admin) com KPIs, discos e lista por categoria
-- Backend em **Netlify Functions** para checkout dinâmico, login e **webhook PagBank**
+- Área restrita (admin) com KPIs e lista por categoria
+- Backend em **Netlify Functions**
 
-## Deploy no Netlify (recomendado)
+---
 
-1. Conecte este repositório no [Netlify](https://app.netlify.com).
+## Deploy no Netlify
+
+1. Conecte este repositório: https://app.netlify.com/projects/copapreisda  
+   **Site settings → Build & deploy → Continuous deployment → Link repository** → `opkzin177/copa-presida`
 2. Build settings (já no `netlify.toml`):
    - **Publish directory:** `public`
    - **Functions directory:** `netlify/functions`
-3. Em **Site settings → Environment variables** configure:
-   - `ADMIN_USER` / `ADMIN_PASS` (login do painel)
-   - `PAGBANK_TOKEN` + `PAGBANK_ENV` (opcional — se vazio, usa os links pag.ae já existentes)
-   - `SITE_URL` = URL pública do site (ex.: `https://inscricaocopapresida.com`)
+3. **Environment variables** (obrigatórias):
+
+| Variável | Descrição |
+|----------|-----------|
+| `INFINITEPAY_HANDLE` | Sua InfiniteTag **sem** o `$` |
+| `ADMIN_USER` | Usuário do painel admin |
+| `ADMIN_PASS` | Senha forte (marque como **Secret**) |
+| `SITE_URL` | `https://inscricaocopapresida.com` |
+
+Opcionais:
+- `INFINITEPAY_WEBHOOK_SECRET` — protege o webhook
+- `PAGBANK_TOKEN` / `PAGBANK_ENV` — se ainda quiser PagBank
+- `FIREBASE_DB_URL` — override do RTDB
+
 4. Deploy.
 
-### Login admin
+---
+
+## Login admin
 
 - Clique 5× no logo **P Complexo Presida** (ou `Ctrl+Shift+K`, ou `?painel=1`).
-- Usuário/senha: os valores de `ADMIN_USER` / `ADMIN_PASS` (padrão local: `copa5` / `presida2026`).
+- Usuário/senha: **somente** os valores de `ADMIN_USER` / `ADMIN_PASS` no Netlify.
+- **Nunca** coloque a senha no código, no README ou em commit.
 
-### Pagamento
+---
 
-| Método | Fluxo |
-|--------|--------|
-| **PIX** | QR + payload estático Santander (Welber Francisco Rodrigue). Confirmação com titular + CPF. |
-| **Cartão** | Chama `/.netlify/functions/pagbank-checkout`. Com token PagBank → checkout dinâmico. Sem token → link estático `pag.ae`. |
+## Pagamento — InfinitePay (principal)
 
-### Webhook PagBank
+| Endpoint | Função |
+|----------|--------|
+| `POST /.netlify/functions/infinitepay-checkout` | Cria link de pagamento (Pix + Cartão) |
+| `POST /.netlify/functions/infinitepay-webhook` | Recebe confirmação e marca inscrição como **paga** |
 
-Endpoint: `/.netlify/functions/pagbank-webhook` (também `/api/pagbank-webhook`)
+Fluxo:
+1. Front envia `{ nome, email, whatsapp, cpf, categoria, referencia, metodo }` para o checkout.
+2. A função cria o link na InfinitePay e devolve `paymentUrl`.
+3. Cliente paga (Pix grátis ou cartão).
+4. InfinitePay chama o webhook → inscrição no Firebase vira `status: "pago"` e gera ingresso.
 
-No checkout dinâmico já são enviados:
-- `payment_notification_urls` → pagamento (`PAID`, `DECLINED`, `WAITING`, …)
-- `notification_urls` → checkout (`EXPIRED`, …)
-
-Quando chega `PAID`, a inscrição no Firebase vira **paga** e o ingresso é gerado.
-
-Env opcional:
-- `PAGBANK_WEBHOOK_SECRET` — exige `?secret=` ou header `x-webhook-secret`
-- `FIREBASE_DB_URL` — override do RTDB
-- `SITE_URL` / `URL` — base da URL do webhook no create checkout
-
-Teste manual:
+Teste manual do webhook:
 ```bash
-curl -X POST https://SEU-SITE.netlify.app/.netlify/functions/pagbank-webhook \
+curl -X POST https://inscricaocopapresida.com/.netlify/functions/infinitepay-webhook \
   -H 'Content-Type: application/json' \
-  -d '{"reference_id":"INS-TESTE","charges":[{"id":"CHAR_1","status":"PAID","payment_method":{"type":"CREDIT_CARD"},"amount":{"value":38500}}]}'
+  -d '{
+    "order_nsu": "INS-TESTE",
+    "transaction_nsu": "uuid-teste",
+    "capture_method": "pix",
+    "amount": 35000,
+    "paid_amount": 35000,
+    "invoice_slug": "abc123"
+  }'
 ```
+
+Documentação oficial: https://www.infinitepay.io/checkout
+
+---
+
+## Pagamento — PagBank (legado)
+
+Ainda funciona se configurar `PAGBANK_TOKEN`.
+Endpoints: `pagbank-checkout` e `pagbank-webhook`.
+
+---
+
+## Segurança aplicada
+
+- Senha admin **apenas** em variável de ambiente (Secret no Netlify).
+- README sem credenciais em texto puro.
+- Headers HTTP no `netlify.toml`:
+  - `X-Frame-Options: DENY`
+  - `X-Content-Type-Options: nosniff`
+  - `Referrer-Policy: strict-origin-when-cross-origin`
+- Webhook pode exigir `INFINITEPAY_WEBHOOK_SECRET` (header ou query).
+- Login admin com atraso anti-brute-force.
+
+**Próximo passo recomendado:** no console Firebase, restringir regras de escrita do RTDB (hoje a escrita é aberta pela URL).
+
+---
 
 ## Desenvolvimento local
 
 ```bash
 npm i -g netlify-cli
+# copie .env.example → .env e preencha
 netlify dev
 ```
+
+---
 
 ## Estrutura
 
@@ -73,6 +119,8 @@ copa-presida/
 │   └── app.js
 ├── netlify/
 │   └── functions/
+│       ├── infinitepay-checkout.js   ← NOVO
+│       ├── infinitepay-webhook.js    ← NOVO
 │       ├── pagbank-checkout.js
 │       ├── pagbank-webhook.js
 │       └── admin-login.js
@@ -80,6 +128,8 @@ copa-presida/
 ├── .env.example
 └── README.md
 ```
+
+---
 
 ## Firebase
 
