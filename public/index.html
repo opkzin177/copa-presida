@@ -154,8 +154,8 @@ footer{padding:28px 18px;color:var(--muted);border-top:1px solid var(--line);mar
         <button class="pay-tab" type="button" data-modo="cartao" onclick="setModo('cartao')">Cartão</button>
       </div>
       <div class="pay-panel" id="panel-cartao">
-        <p class="note">PagBank · crédito. Após pagar, volte ao site para confirmar a conta e resgatar o ingresso.</p>
-        <button class="btn btn-solid btn-block" type="button" onclick="iniciarPagamento('cartao')">Pagar com cartão no PagBank</button>
+        <p class="note">InfinitePay · Pix ou cartão (até 12x). Após pagar, você volta ao site e o ingresso é liberado.</p>
+        <button class="btn btn-solid btn-block" type="button" onclick="iniciarPagamento('cartao')">Pagar com InfinitePay</button>
       </div>
       <div class="pay-panel on" id="panel-pix">
         <p class="note">PIX · Welber Francisco Rodrigue · chave +55 61 98100-0648.</p>
@@ -219,20 +219,20 @@ footer{padding:28px 18px;color:var(--muted);border-top:1px solid var(--line);mar
   <div class="screen-card">
     <h2>Como funciona o pagamento</h2>
     <ol class="steps">
-      <li><span class="n">1</span><span>O PagBank abre para o cartão.</span></li>
+      <li><span class="n">1</span><span>O checkout InfinitePay abre (Pix ou cartão).</span></li>
       <li><span class="n">2</span><span>Você paga normalmente.</span></li>
-      <li><span class="n">3</span><span>Ao concluir, esta página volta sozinha para confirmar e liberar o ingresso.</span></li>
+      <li><span class="n">3</span><span>Ao concluir, o site volta sozinho para a tela de ingresso.</span></li>
     </ol>
-    <p class="note" id="tutNota">Mantenha esta aba aberta. Se o PagBank não devolver sozinho, o site detecta seu retorno.</p>
-    <button class="btn btn-solid btn-block" type="button" onclick="seguirParaPagBank()">Entendi, ir para o PagBank</button>
+    <p class="note" id="tutNota">Após pagar, você é redirecionado de volta para esta página e o ingresso é liberado.</p>
+    <button class="btn btn-solid btn-block" type="button" onclick="seguirParaInfinitePay()">Entendi, ir para o pagamento</button>
     <button class="btn btn-block" type="button" style="margin-top:8px" onclick="fecharTela('telaTutorial')">Cancelar</button>
   </div>
 </div>
 
 <div class="screen" id="telaEspera">
   <div class="screen-card">
-    <h2>Aguardando o PagBank</h2>
-    <p class="note">Pague na aba do PagBank. Quando o pagamento terminar, esta tela volta sozinha para o resgate do ingresso.</p>
+    <h2>Aguardando pagamento</h2>
+    <p class="note">Pague no checkout. Quando terminar, esta tela volta sozinha para o resgate do ingresso.</p>
     <p class="note" id="esperaMsg">Não feche esta aba.</p>
     <button class="btn btn-solid btn-block" type="button" onclick="voltarDoPagBank()">Já paguei · voltar ao site</button>
   </div>
@@ -241,19 +241,16 @@ footer{padding:28px 18px;color:var(--muted);border-top:1px solid var(--line);mar
 <div class="screen" id="telaRetorno">
   <div class="screen-card">
     <h2>Confirmar conta paga e resgatar ingresso</h2>
-    <p class="note">Se o pagamento no PagBank ou no PIX foi concluído, informe o titular da conta e libere o código da dupla.</p>
+    <p class="note">Se o pagamento foi concluído, informe o titular da conta e libere o código da dupla.</p>
     <p>Pedido: <strong id="retRef">—</strong> · <span id="retCat">—</span> · <strong id="retVal">—</strong></p>
     <label>Nome do titular da conta<input id="titular" placeholder="Como está no banco / cartão"></label>
     <label>CPF do titular<input id="titularCpf" placeholder="000.000.000-00" inputmode="numeric"></label>
-    <button class="btn btn-solid btn-block" type="button" onclick="resgatarIngresso()">Confirmar pagamento e resgatar ingresso</button>
-    <button class="btn btn-block" type="button" onclick="enviarComprovanteWhats()">Se der erro, enviar comprovante no WhatsApp</button>
-    <p class="note">O envio do comprovante é opcional, só se ocorrer algum erro.</p>
+    <button class="btn btn-solid btn-block" type="button" onclick="resgatarIngresso()">Confirmar e liberar ingresso</button>
     <p class="note" id="retMsg"></p>
     <div class="ticket" id="ticketBox" style="display:none">
-      <div class="note">Ingresso da dupla</div>
+      <p class="note">Código da dupla</p>
       <div class="ticket-code" id="ticketCode">—</div>
-      <p class="note" id="ticketDupla"></p>
-      <p class="note">Mostre este código na entrada ou envie no WhatsApp da organização com o comprovante.</p>
+      <p id="ticketDupla" class="note"></p>
       <button class="btn btn-solid btn-block" type="button" onclick="enviarIngressoWhats()">Enviar ingresso no WhatsApp</button>
     </div>
   </div>
@@ -293,7 +290,7 @@ footer{padding:28px 18px;color:var(--muted);border-top:1px solid var(--line);mar
     <div class="disco-card">
       <h3 style="margin:0">Como pagou</h3>
       <div class="disco" id="discoMetodo" data-center="—"></div>
-      <div class="disco-leg"><span><i class="dot" style="background:var(--teal)"></i>PIX</span><span><i class="dot" style="background:var(--gold)"></i>Cartão PagBank</span></div>
+      <div class="disco-leg"><span><i class="dot" style="background:var(--teal)"></i>PIX</span><span><i class="dot" style="background:var(--gold)"></i>Cartão</span></div>
     </div>
     <div class="disco-card">
       <h3 style="margin:0">Valor pago x gerado</h3>
@@ -305,4 +302,5 @@ footer{padding:28px 18px;color:var(--muted);border-top:1px solid var(--line);mar
 </div>
 
 <script src="/app.js"></script>
+<script src="/infinitepay.js"></script>
 </body></html>
