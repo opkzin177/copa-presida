@@ -1,12 +1,11 @@
 /**
- * Login da área restrita — senha via variável de ambiente
+ * Login da área restrita — senha SOMENTE via variável de ambiente
  *
- * Netlify → Environment variables:
- *   ADMIN_USER = copa5          (opcional, default copa5)
- *   ADMIN_PASS = sua-senha-forte
+ * Netlify → Environment variables (marque ADMIN_PASS como Secret):
+ *   ADMIN_USER = admincopa
+ *   ADMIN_PASS = senha-forte-de-pelo-menos-12-caracteres
  *
- * Retorna um token simples (base64) válido por 8h no client.
- * Em produção real, troque por JWT assinado ou Netlify Identity.
+ * Em produção: se ADMIN_PASS não estiver definido, o login fica desabilitado.
  */
 
 exports.handler = async (event) => {
@@ -15,6 +14,14 @@ exports.handler = async (event) => {
   }
   if (event.httpMethod !== "POST") {
     return json(405, { ok: false, error: "Method not allowed" });
+  }
+
+  const expectedPass = process.env.ADMIN_PASS;
+  if (!expectedPass || expectedPass.length < 8) {
+    return json(503, {
+      ok: false,
+      error: "Admin não configurado. Defina ADMIN_PASS nas variáveis de ambiente do Netlify."
+    });
   }
 
   let body;
@@ -27,18 +34,17 @@ exports.handler = async (event) => {
   const user = String(body.user || "").trim().toLowerCase();
   const pass = String(body.pass || "");
 
-  const expectedUser = (process.env.ADMIN_USER || "copa5").toLowerCase();
-  const expectedPass = process.env.ADMIN_PASS || "presida2026";
+  const expectedUser = (process.env.ADMIN_USER || "admincopa").toLowerCase();
 
   if (user !== expectedUser || pass !== expectedPass) {
-    // pequeno atraso anti-brute
-    await new Promise((r) => setTimeout(r, 600));
+    // atraso anti-brute-force
+    await new Promise((r) => setTimeout(r, 800));
     return json(401, { ok: false, error: "Usuário ou senha incorretos" });
   }
 
   const exp = Date.now() + 8 * 60 * 60 * 1000; // 8h
   const token = Buffer.from(
-    JSON.stringify({ u: expectedUser, exp, v: 1 })
+    JSON.stringify({ u: expectedUser, exp, v: 2 })
   ).toString("base64url");
 
   return json(200, {
